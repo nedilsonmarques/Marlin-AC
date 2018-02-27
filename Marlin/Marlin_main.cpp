@@ -165,6 +165,7 @@
  * M209 - Turn Automatic Retract Detection on/off: S<0|1> (For slicers that don't support G10/11). (Requires FWRETRACT)
           Every normal extrude-only move will be classified as retract depending on the direction.
  * M211 - Enable, Disable, and/or Report software endstops: S<0|1> (Requires MIN_SOFTWARE_ENDSTOPS or MAX_SOFTWARE_ENDSTOPS)
+ * M212 - Set Z offset in current units. (Negative = below the nozzle.)
  * M218 - Set a tool offset: "M218 T<index> X<offset> Y<offset>". (Requires 2 or more extruders)
  * M220 - Set Feedrate Percentage: "M220 S<percent>" (i.e., "FR" on the LCD)
  * M221 - Set Flow Percentage: "M221 S<percent>"
@@ -205,7 +206,6 @@
  * M665 - Set delta configurations: "M665 L<diagonal rod> R<delta radius> S<segments/s> A<rod A trim mm> B<rod B trim mm> C<rod C trim mm> I<tower A trim angle> J<tower B trim angle> K<tower C trim angle>" (Requires DELTA)
  * M666 - Set delta endstop adjustment. (Requires DELTA)
  * M605 - Set dual x-carriage movement mode: "M605 S<mode> [X<x_offset>] [R<temp_offset>]". (Requires DUAL_X_CARRIAGE)
- * M851 - Set Z probe's Z offset in current units. (Negative = below the nozzle.)
  * M852 - Set skew factors: "M852 [I<xy>] [J<xz>] [K<yz>]". (Requires SKEW_CORRECTION_GCODE, and SKEW_CORRECTION_FOR_Z for IJ)
  * M860 - Report the position of position encoder modules.
  * M861 - Report the status of position encoder modules.
@@ -5378,17 +5378,12 @@ void home_all_axes() { gcode_G28(true); }
   }
 
   void ac_setup(const bool reset_bed) {
-    #if HOTENDS > 1
-      const uint8_t old_tool_index = active_extruder;
-      tool_change(0, 0, true);
-      #define AC_CLEANUP() ac_cleanup(old_tool_index)
-    #else
-      #define AC_CLEANUP() ac_cleanup()
-    #endif
-
     stepper.synchronize();
     setup_for_endstop_or_probe_move();
 
+    #if HOTENDS > 1
+      tool_change(0, 0, true);
+    #endif
     #if HAS_LEVELING
       if(reset_bed) reset_bed_level(); // After full calibration bed-level data is no longer valid
     #endif
@@ -5504,13 +5499,15 @@ void home_all_axes() { gcode_G28(true); }
     #endif
   }
 
-  static float probe_z_shift(const float centre) {
-    STOW_PROBE();
-    endstops.enable_z_probe(false);
-    float z_shift = lcd_probe_pt(0, 0) - centre;
-    endstops.enable_z_probe(true);
-    return z_shift;
-  }
+  #if HAS_BED_PROBE
+    static float probe_z_shift(const float centre) {
+      STOW_PROBE();
+      endstops.enable_z_probe(false);
+      float z_shift = lcd_probe_pt(0, 0) - centre;
+      endstops.enable_z_probe(true);
+      return z_shift;
+    }
+  #endif
 
   /**
    *  - Probe a grid
@@ -9883,7 +9880,7 @@ inline void gcode_M502() {
 
 #endif // ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED
 
-inline void gcode_M851() {
+inline void gcode_M212() {
   SERIAL_ECHO_START();
   SERIAL_ECHOPGM(MSG_SUPPL_ZOFFSET);
   if (parser.seen('Z')) {
@@ -12243,8 +12240,8 @@ void process_parsed_command() {
           break;
       #endif
 
-      case 851: // M851: Set Z Probe Z Offset
-        gcode_M851();
+      case 212: // M212: Set Z Offset
+        gcode_M212();
         break;
 
       #if ENABLED(SKEW_CORRECTION_GCODE)

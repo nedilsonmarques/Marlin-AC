@@ -74,7 +74,7 @@
  *  229            GRID_MAX_POINTS_Y                (uint8_t)
  *  230 G29 S3 XYZ z_values[][]                     (float x9, up to float x81) +288
  *
- *  266  M851      suppl_zoffset                   (float)
+ *  266  M212      suppl_zoffset                   (float)
  *
  * ABL_PLANAR:                                      36 bytes
  *  270            planner.bed_level_matrix         (matrix_3x3 = float x9)
@@ -2030,7 +2030,7 @@ void MarlinSettings::reset() {
       SERIAL_ECHOLNPGM("Z-Probe Offset (mm):");
     }
     CONFIG_ECHO_START;
-    SERIAL_ECHOLNPAIR("  M851 Z", LINEAR_UNIT(suppl_zoffset));
+    SERIAL_ECHOLNPAIR("  M212 Z", LINEAR_UNIT(suppl_zoffset));
 
     /**
      * Bed Skew Correction

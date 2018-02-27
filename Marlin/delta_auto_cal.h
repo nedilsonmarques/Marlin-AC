@@ -45,4 +45,11 @@ enum CalEnum {                               // the 7 main calibration points - 
 
 float lcd_probe_pt(const float &rx, const float &ry);
 
+#if HOTENDS > 1
+  const uint8_t old_tool_index = active_extruder;
+  #define AC_CLEANUP() ac_cleanup(old_tool_index)
+#else
+  #define AC_CLEANUP() ac_cleanup()
+#endif
+
 #endif // __DELTA_AUTO_CAL_H__
